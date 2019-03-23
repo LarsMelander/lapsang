@@ -6,20 +6,29 @@ defmodule Request do
   defmacro db_create, do: <<4>>  # Add a new database.
   defmacro db_exist, do: <<6>>  # Check if database exists.
 
-  @spec build_connect(%Connection{}) :: binary
-  def build_connect(connection) do
+  @spec create_client_id() :: String.t
+  def create_client_id() do
+    {:ok, addr_list} = :inet.getifaddrs()
+    {reg, _list} = Enum.find(addr_list, fn {_reg, list} ->
+      list[:addr] != {127, 0, 0, 1}
+    end)
+    to_string(reg)
+  end
+
+  @spec build_connect(%Transport{}) :: binary
+  def build_connect(transport) do
     @connect
-      <> Encode.int(connection.session_id)
-      <> Encode.string(connection.driver_name)
+      <> Encode.int(transport.session_id)
+      <> Encode.string(transport.driver_name)
       <> Encode.string(Lapsang.MixProject.project[:version])
       <> Encode.short(Lapsang.MixProject.project[:protocol_version])
-      <> Encode.string("1")
-      <> Encode.string(connection.serialization_type)
+      <> Encode.string(transport.client_id)
+      <> Encode.string(transport.serialization_type)
       <> Encode.boolean(false)
       <> Encode.boolean(true)
       <> Encode.boolean(true)
-      <> Encode.string(connection.user)
-      <> Encode.string(connection.password)
+      <> Encode.string(transport.user)
+      <> Encode.string(transport.password)
   end
 
         # DB_DROP:      <<7>>,  # Delete database.

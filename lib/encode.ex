@@ -1,10 +1,10 @@
 defmodule Encode do
 
   @spec short(integer) :: <<_::16>>
-  def short(short), do: <<short :: 16>>
+  def short(short), do: <<short::16>>
 
   @spec int(integer) :: <<_::32>>
-  def int(int), do: <<int :: 32>>
+  def int(int), do: <<int::32>>
 
   @spec string(String.t) :: binary
   def string(string) do
