@@ -1,4 +1,4 @@
-defmodule Response do
+defmodule Lapsang.Response do
 
   @spec read(port) :: {:ok, binary} | {:error, atom}
   def read(socket) do
@@ -17,6 +17,18 @@ defmodule Response do
       _ ->
         <<>>
     end
+  end
+
+  @spec get_session_id(binary) :: {integer, integer, binary}
+  def get_session_id(packet) do
+    {old_session_id, rest} = Decode.int(packet)
+    {new_session_id, rest} = Decode.int(rest)
+    {old_session_id, new_session_id, rest}
+  end
+
+  @spec read_token(binary) :: {binary, binary}
+  def read_token(packet) do
+    Decode.bytelist(packet)
   end
 
   @spec decode_error(binary) :: {String.t, String.t}

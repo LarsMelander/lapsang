@@ -1,5 +1,10 @@
 defmodule Lapsang.Connect do
 
+  alias Lapsang.Transport
+  alias Lapsang.Request
+  alias Lapsang.Response
+  alias Lapsang.Error
+
   @spec connect(any, integer) :: {:ok, %Transport{}} | {:error, String.t}
   def connect(address, port) do
     try do
@@ -10,10 +15,8 @@ defmodule Lapsang.Connect do
           |> eval_protocol
       }
     catch
-      {:connect_error, message} ->
-        {:error, "Connecting to server returned an error: #{message}"}
-      {:protocol_error, message} ->
-        {:error, "Retrieving protocol returned an error: #{message}"}
+      {error, message} ->
+        Error.get(error, message)
     end
   end
 
@@ -44,21 +47,16 @@ defmodule Lapsang.Connect do
     end
   end
 
-  @spec login(%Transport{}, String.t, String.t) :: {:ok, %Transport{}} | {:error, String.t}
-  def login(transport, user, password) do
+  @spec login(%Transport{}) :: {:ok, %Transport{}} | {:error, String.t}
+  def login(transport) do
     try do
       { :ok,
-        %{transport | user: user, password: password}
-          |> send_login
+        send_login(transport)
           |> login_response
       }
     catch
-      {:login_error, message} ->
-        {:error, "Login returned an error: #{message}"}
-      {:login_response_error, message} ->
-        {:error, "Could not receive login response: #{message}"}
-      {:decode_login_error, message} ->
-        {:error, message}
+      {error, message} ->
+        Error.get(error, message)
     end
   end
 
@@ -79,18 +77,12 @@ defmodule Lapsang.Connect do
   end
 
   defp decode_login(transport, <<0::8, packet::binary>>) do
-    { :ok,
-      %{transport | session_id: get_session_id(packet)}
-    }
+    {old_session_id, new_session_id, _rest} = Response.get_session_id(packet)
+    %{transport | old_session_id: old_session_id, session_id: new_session_id}
   end
   defp decode_login(_transport, <<1::8, packet::binary>>) do
     {exception, exception_message} = Response.decode_error(packet)
     throw {:decode_login_error, "Exception: #{exception}: #{exception_message}"}
   end
 
-  defp get_session_id(packet) do
-    {_, rest} = Decode.int(packet)
-    {session_id, _rest} = Decode.int(rest)
-    session_id
-  end
 end

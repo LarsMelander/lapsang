@@ -1,10 +1,14 @@
-defmodule Request do
+defmodule Lapsang.Request do
+
+  alias Lapsang.Transport
+
   # Server (CONNECT Operations)
   # @shutdown <<1>>  # Shut down server.
   @connect  <<2>>  # Required initial operation to access to server commands.
-  defmacro db_open, do: <<3>>  # Required initial operation to access to the database.
-  defmacro db_create, do: <<4>>  # Add a new database.
-  defmacro db_exist, do: <<6>>  # Check if database exists.
+  @db_open  <<3>>  # Required initial operation to access to the database.
+  # @db_create <<4>>  # Add a new database.
+  # @db_exist <<6>>  # Check if database exists.
+  @db_command <<41>> # Execute a command.
 
   @spec create_client_id() :: String.t
   def create_client_id() do
@@ -15,10 +19,8 @@ defmodule Request do
     to_string(reg)
   end
 
-  @spec build_connect(%Transport{}) :: binary
-  def build_connect(transport) do
-    @connect
-      <> Encode.int(transport.session_id)
+  defp build_header(transport) do
+    Encode.int(transport.session_id)
       <> Encode.string(transport.driver_name)
       <> Encode.string(Lapsang.MixProject.project[:version])
       <> Encode.short(Lapsang.MixProject.project[:protocol_version])
@@ -27,8 +29,33 @@ defmodule Request do
       <> Encode.boolean(false)
       <> Encode.boolean(true)
       <> Encode.boolean(true)
+  end
+
+  @spec build_connect(%Transport{}) :: binary
+  def build_connect(transport) do
+    @connect
+      <> build_header(transport)
       <> Encode.string(transport.user)
       <> Encode.string(transport.password)
+  end
+
+  @spec build_db_open(%Transport{}) :: binary
+  def build_db_open(transport) do
+    @db_open
+      <> build_header(transport)
+      <> Encode.string(transport.db_name)
+      <> Encode.string(transport.user)
+      <> Encode.string(transport.password)
+  end
+
+  @spec build_db_command(%Transport{}, binary, String.t, String.t) :: binary
+  def build_db_command(transport, mode, class_name, query) do
+    @db_command
+      <> Encode.int(transport.session_id)
+      <> mode
+      <> Encode.int(5 + 4 + String.length(query))
+      <> Encode.string(class_name)
+      <> Encode.string(query)
   end
 
         # DB_DROP:      <<7>>,  # Delete database.
@@ -57,7 +84,6 @@ defmodule Request do
         # RECORD_CLEAN_OUT:   <<38>>, # (Asynchronous) Clean out record.
         # POSITIONS_FLOOR:    <<39>>, # (Asynchronous) Get the last record.
         # COUNT:              <<40>>, # (Deprecated) See DATACLUSTER_COUNT.
-        # COMMAND:            <<41>>, # Execute a command.
         # POSITIONS_CEILING:  <<42>>, # Get the first record.
         # TX_COMMIT:          <<60>>, # Commit transaction.
         # DB_RELOAD:          <<73>>, # Reload database.

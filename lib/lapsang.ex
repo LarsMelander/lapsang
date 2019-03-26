@@ -1,23 +1,12 @@
 defmodule Lapsang do
 
+  alias Lapsang.Transport
   alias Lapsang.Connect
+  alias Lapsang.Database
 
   @moduledoc """
   Documentation for Lapsang.
   """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Lapsang.hello()
-      :world
-
-  """
-  def hello do
-    :world
-  end
 
   @spec connect(any, integer) :: {:ok, %Transport{}} | {:error, String.t}
   def connect(address \\ {127, 0, 0, 1}, port \\ 2424) do
@@ -26,7 +15,7 @@ defmodule Lapsang do
 
   @spec login(%Transport{}, String.t, String.t) :: {:ok, %Transport{}} | {:error, String.t}
   def login(transport, user, password) do
-    Connect.login(transport, user, password)
+    Connect.login(%{transport | user: user, password: password})
   end
 
   def db_exist do
@@ -37,8 +26,9 @@ defmodule Lapsang do
 
   end
 
-  def db_open do
-
+  @spec db_open(%Transport{}, String.t) :: {:ok, %Transport{}} | {:error, String.t}
+  def db_open(transport, db_name) do
+    Database.open(%{transport | db_name: db_name})
   end
 
   def db_reopen do
@@ -54,11 +44,13 @@ defmodule Lapsang do
   end
 
   def tx_commit do
-    
+
   end
 
-  def create_vertex do
-
+  @spec create_vertex(%Transport{}, String.t, [{atom, String.t}]) :: any
+  def create_vertex(transport, class, list \\ []) do
+    query = Database.create_vertex_query(class, list)
+    Database.db_command(transport, <<?a::8>>, "c", query)
   end
 
 end
