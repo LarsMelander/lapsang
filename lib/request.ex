@@ -50,12 +50,14 @@ defmodule Lapsang.Request do
 
   @spec build_db_command(%Transport{}, binary, String.t, String.t) :: binary
   def build_db_command(transport, mode, class_name, query) do
+    chunk = Encode.string(class_name)
+      <> Encode.string(query)
+      <> Encode.int(0)
     @db_command
       <> Encode.int(transport.session_id)
       <> mode
-      <> Encode.int(5 + 4 + String.length(query))
-      <> Encode.string(class_name)
-      <> Encode.string(query)
+      <> Encode.int(byte_size chunk)
+      <> chunk
   end
 
         # DB_DROP:      <<7>>,  # Delete database.

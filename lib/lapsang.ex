@@ -3,6 +3,7 @@ defmodule Lapsang do
   alias Lapsang.Transport
   alias Lapsang.Connect
   alias Lapsang.Database
+  alias Lapsang.Query
 
   @moduledoc """
   Documentation for Lapsang.
@@ -47,10 +48,14 @@ defmodule Lapsang do
 
   end
 
+  @command "com.orientechnologies.orient.core.sql.OCommandSQL"
+  @sync <<?s::8>>
+
   @spec create_vertex(%Transport{}, String.t, [{atom, String.t}]) :: any
   def create_vertex(transport, class, list \\ []) do
-    query = Database.create_vertex_query(class, list)
-    Database.db_command(transport, <<?a::8>>, "c", query)
+    Query.create_vertex_query(class, list)
+      |> Database.db_command(transport, @sync, @command)
+      |> Database.db_command_response(transport)
   end
 
 end

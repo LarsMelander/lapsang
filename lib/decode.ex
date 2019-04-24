@@ -9,6 +9,9 @@ defmodule Decode do
   @spec int(binary) :: {integer, binary}
   def int(<<int::signed-big-integer-32, rest::binary>>), do: {int, rest}
 
+  @spec long(binary) :: {binary, binary}
+  def long(<<long::binary-8, rest::binary>>), do: {long, rest}
+
   @spec bytelist(binary) :: {binary, binary}
   def bytelist(<<length::signed-big-integer-32, byte_list::binary>>) do
     { :binary.part(byte_list, 0, length),
@@ -23,7 +26,7 @@ defmodule Decode do
   end
 
   @spec boolean(binary) :: {boolean, binary}
-  def boolean(<<1, rest::binary>>), do: {true, rest}
-  def boolean(<<0, rest::binary>>), do: {false, rest}
+  def boolean(<<1::8, rest::binary>>), do: {true, rest}
+  def boolean(<<0::8, rest::binary>>), do: {false, rest}
 
 end
